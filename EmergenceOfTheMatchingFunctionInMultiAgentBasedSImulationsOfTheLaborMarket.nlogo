@@ -6,14 +6,15 @@ globals
     ur                               ;; unemployment rate ( U / L )
     vr                               ;; vacancy rate ( V / L )
     p                                ;; participation rate ( L / size of the adult civilian population in working age )
-    matching-quality-threshold       ;; least necessary similarity
-    firing-quality                   ;; least productivity necessary
-    unexpected-firing
-    max-productivity-fluctuation
-    unexpected-company-motivation    ;; exceptional motivation for a company to find an employee, increases the similarity value of a matching
-    unexpected-worker-motivation     ;; exceptional motivatoin for a worker to find a job, increases the similarity value of a matching
-    exceptional-matching             ;; threshold below which the matching is considered to hold
-    matching-random-pair-number ]    ;; in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+    ;;matching-quality-threshold       ;; least necessary similarity
+    ;;firing-quality                   ;; least productivity necessary
+    ;;unexpected-firing
+    ;;max-productivity-fluctuation
+    ;;unexpected-company-motivation    ;; exceptional motivation for a company to find an employee, increases the similarity value of a matching
+    ;;unexpected-worker-motivation     ;; exceptional motivation for a worker to find a job, increases the similarity value of a matching
+    ;;exceptional-matching             ;; threshold below which the matching is considered to hold
+    ;;matching-random-pair-number     ;; in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+  ]
 
 breed [companies company]
 breed [people person]
@@ -119,52 +120,54 @@ to go
   tick
 end
 
-
-
 ;;
 ;; Companies Procedures
 ;;
-to ask-for-employee
+
+to evaluate-employee
   ;;...
 end
 
-to fire
+to unlink-person-company
   ;;...
 end
-
-to hire
-  ;;...
-end
-
-
-
-;;
-;; People Procedures
-;;
-to ask-for-job
-  ;;...
-end
-
-
 
 ;;
 ;; Matcher Procedures
 ;;
 to match
+  ask matchers [
+    let unemployed-people-chosen-left n-of ( matching-random-pair-number * count unemployed-people ) unemployed-people
+    let vacant-job-left n-of ( matching-random-pair-number * count vacant-job-companies ) vacant-job-companies
+    let number-pairs  min list ( matching-random-pair-number * count unemployed-people )( matching-random-pair-number * count vacant-job-companies )
+    foreach n-of number-pairs unemployed-people
+    [
+      let job n-of 1 vacant-job-companies
+      show compute-similarity ?1 job
+      show compute-similarity job ?1
+      show mean [1 2]
+      if 1 <= matching-quality-threshold [ link-person-company ?1 job ]
+    ]
+  ]
   ;;...
 end
 
-to compute-similarity
+to-report compute-similarity [agent job]
+  let agent-skills [skills] of agent
+  let job-skills [skills] of job
+  let result 0
+  foreach [0 1 2 3 4]
+  [
+    set result result + ( item ?1 agent-skills - item ?1 job-skills)
+  ]
+  report ( result + 5 ) / 10
   ;;...
 end
 
-to give-job
+to link-person-company [agent job]
   ;;...
 end
 
-to give-employee
-  ;;...
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -219,7 +222,7 @@ number-people
 number-people
 1
 100
-49
+47
 1
 1
 NIL
@@ -281,7 +284,7 @@ number-locations
 number-locations
 1
 100
-10
+7
 1
 1
 NIL
@@ -297,6 +300,186 @@ min-salary
 1
 0
 Number
+
+SLIDER
+660
+10
+891
+43
+matching-quality-threshold
+matching-quality-threshold
+0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+52
+891
+85
+firing-quality
+firing-quality
+0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+90
+892
+123
+unexpected-firing
+unexpected-firing
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+128
+892
+161
+max-productivity-fluctuation
+max-productivity-fluctuation
+0
+1
+0.3
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+660
+164
+893
+197
+unexpected-company-motivation
+unexpected-company-motivation
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+201
+893
+234
+unexpected-worker-motivation
+unexpected-worker-motivation
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+662
+238
+893
+271
+exceptional-matching
+exceptional-matching
+0
+1
+0.2
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+662
+275
+894
+308
+matching-random-pair-number
+matching-random-pair-number
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+902
+20
+1052
+38
+least necessary similarity
+11
+0.0
+1
+
+TEXTBOX
+902
+60
+1052
+78
+least productivity necessary
+11
+0.0
+1
+
+TEXTBOX
+902
+165
+1258
+221
+exceptional motivation for a company to find an employee, increases the similarity value of a matching
+11
+0.0
+1
+
+TEXTBOX
+901
+200
+1242
+256
+exceptional motivation for a worker to find a job, increases the similarity value of a matching
+11
+0.0
+1
+
+TEXTBOX
+902
+240
+1052
+268
+threshold below which the matching is considered to hold
+11
+0.0
+1
+
+TEXTBOX
+901
+275
+1349
+359
+in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -658,7 +841,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.0
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
