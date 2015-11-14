@@ -1,44 +1,27 @@
-globals
-  [ U                                ;; number of unemployed people
-    V                                ;; number of vacant jobs
-    L                                ;; labour force ( U + number of employed people)
-    uLevel                           ;; unemployment level ( L - U)
-    ur                               ;; unemployment rate ( U / L )
-    vr                               ;; vacancy rate ( V / L )
-    p                                ;; participation rate ( L / size of the adult civilian population in working age )
-    ;;matching-quality-threshold       ;; least necessary similarity
-    ;;firing-quality                   ;; least productivity necessary
-    ;;unexpected-firing
-    ;;max-productivity-fluctuation
-    ;;unexpected-company-motivation    ;; exceptional motivation for a company to find an employee, increases the similarity value of a matching
-    ;;unexpected-worker-motivation     ;; exceptional motivation for a worker to find a job, increases the similarity value of a matching
-    ;;exceptional-matching             ;; threshold below which the matching is considered to hold
-    ;;matching-random-pair-number     ;; in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
-  ]
+globals [
+  U                        ;; number of unemployed people
+  V                        ;; number of vacant jobs
+  L                        ;; labour force ( U + number of employed people)
+  uLevel                   ;; unemployment level ( L - U)
+  ur                       ;; unemployment rate ( U / L )
+  vr                       ;; vacancy rate ( V / L )
+  p                        ;; participation rate ( L / size of the adult civilian population in working age )
+  number-skills            ;; vector size of the skills attribute for companies and people
+  number-matchers          ;; number of matchers
+  unemployed-people        ;; people unemployed
+  vacant-job-companies     ;; companies with a vacant company
+]
 
 breed [companies company]
 breed [people person]
-breed [matchers matcher]
 
-companies-own
-  [ skills                           ;; skills needed for a job   (vector of 5 booleans)
-    location                         ;; location for a job        (discrete value)
-    salary                           ;; effective salary          (minimum salary S) resp.)
-    state                            ;; filled/vacant             (true/false)
-    productivity ]                   ;; minimum productivity accepted
-
-people-own
-  [ skills                           ;; skills of a person        (vector of 5 booleans)
-    location                         ;; location of a person      (discrete value)
-    salary                           ;; salary                    (minimum salary S) resp.)
-    state                            ;; employed/unemployed       (true/false)
-    productivity ]                   ;; productivity of a person
-
-matchers-own
-  [ unemployed-people                ;; people unemployed
-    vacant-job-companies ]           ;; companies with a vacant job
-
-
+turtles-own [              ;;          COMPANY           /     PERSON 
+  skills                   ;; skills for a job           /  person skills          (vector of number-skills booleans)
+  location                 ;; job location               /  person location        (discrete value)
+  salary                   ;; job retribution            /  expected salary        (minimum salary S) resp.)
+  state                    ;; filled/vacant              /  employed/unemployed    (true/false)
+  productivity             ;; min productivity accepted  /  person's productivity
+]
 
 ;;
 ;; Setup Procedures
@@ -48,7 +31,7 @@ to setup
   setup-constants
   setup-companies
   setup-people
-  setup-matchers
+  dispatch-turtles
   update-global-variables
   update-display
   reset-ticks
@@ -56,52 +39,52 @@ end
 
 ;; set up basic constants of the model
 to setup-constants
-  ;;...
+  set number-skills 5
+  set number-matchers 1
+end
+
+to dispatch-turtles
+  layout-circle sort-by < turtles ( (ceiling min list (world-width / 2) (world-height / 2)) - 1 )
 end
 
 ;; create the companies, then initialize their variables
 to setup-companies
   create-companies number-companies [
-    set skills n-values 5 [random 2]
+    set skills n-values number-skills [random 2]
     set location random number-locations
     set salary min-salary
     set state false
     set productivity 0
-    setxy random-xcor random-ycor
     set shape "house"
-    set size 1.5
   ]
 end
 
 ;; create people, then initialize their variables
 to setup-people
   create-people number-people [
-    set skills n-values 5 [random 2]
+    set skills n-values number-skills [random 2]
     set location random number-locations
     set salary min-salary
     set state false
     set productivity 0
-    setxy random-xcor random-ycor
-    set shape "person business"
-    set size 1.5
-  ]
-end
-
-to setup-matchers
-  create-matchers number-matchers [
-    set unemployed-people people with [ state = false ]
-    set vacant-job-companies companies with [ state = false ]
+    set shape "person"
   ]
 end
 
 to update-global-variables
-  set U count people with [ state = false ]
-  set V count companies with [ state = false ]
+  update-unemployment-variables
+  set U count unemployed-people
+  set V count vacant-job-companies
   set L U + count people with [ state = true ]
   set uLevel L - U
   set ur U / L
   set vr V / L
   set p L / count people
+end
+
+to update-unemployment-variables
+  set unemployed-people people with [ state = false ]
+  set vacant-job-companies companies with [ state = false ]
 end
 
 to update-display
@@ -114,7 +97,7 @@ to update-display
 end
 
 to go
-  ;;...
+  match
   update-global-variables
   update-display
   tick
@@ -128,46 +111,64 @@ to evaluate-employee
   ;;...
 end
 
-to unlink-person-company
-  ;;...
+to unlink-person-company [person company]
+  ask person [
+    set state false
+  ]
+  ask company [
+    set state false
+    ask link-with person [die]
+  ]
 end
 
 ;;
 ;; Matcher Procedures
 ;;
 to match
-  ask matchers [
-    let unemployed-people-chosen-left n-of ( matching-random-pair-number * count unemployed-people ) unemployed-people
-    let vacant-job-left n-of ( matching-random-pair-number * count vacant-job-companies ) vacant-job-companies
-    let number-pairs  min list ( matching-random-pair-number * count unemployed-people )( matching-random-pair-number * count vacant-job-companies )
-    foreach n-of number-pairs unemployed-people
-    [
-      let job n-of 1 vacant-job-companies
-      show compute-similarity ?1 job
-      show compute-similarity job ?1
-      show mean [1 2]
-      if 1 <= matching-quality-threshold [ link-person-company ?1 job ]
+  let number-pairs ceiling min list ( matching-random-pair-number * count unemployed-people )( matching-random-pair-number * count vacant-job-companies )
+  repeat number-pairs [
+    let person one-of unemployed-people
+    let company one-of vacant-job-companies
+    let similarity mean list (compute-similarity person company) (compute-similarity company person)
+    if similarity >= matching-quality-threshold [
+      link-person-company person company
+      update-unemployment-variables
     ]
   ]
-  ;;...
 end
 
-to-report compute-similarity [agent job]
-  let agent-skills [skills] of agent
-  let job-skills [skills] of job
-  let result 0
-  foreach [0 1 2 3 4]
-  [
-    set result result + ( item ?1 agent-skills - item ?1 job-skills)
+to-report compute-similarity [person company]
+  let skills-evaluation evaluate-skills person company
+  let location-evaluation evaluate-location person company
+  let salary-evaluation evaluate-salary person company
+  report ( mean (list skills-evaluation location-evaluation salary-evaluation) )
+end
+
+to-report evaluate-skills [person company]
+  report ((sum (map - [skills] of person [skills] of company)) + number-skills) / ( 2 * number-skills)
+end
+
+to-report evaluate-location [turtle1 turtle2]
+  report 1 - abs ( [location] of turtle1 - [location] of turtle2 ) / number-locations
+end
+
+;; reports turtle1's evaluation for the salary proposed by turtle2
+to-report evaluate-salary [turtle1 turtle2]
+  if (is-person? turtle1) and (is-company? turtle2) [
+    report min list 1 ([salary] of turtle2 / [salary] of turtle1)
   ]
-  report ( result + 5 ) / 10
-  ;;...
+  report min list 1 ([salary] of turtle1 / [salary] of turtle2)
 end
 
-to link-person-company [agent job]
-  ;;...
+to link-person-company [person company]
+  ask person [
+    set state true
+  ]
+  ask company [
+    set state true
+    create-link-with person
+  ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -183,8 +184,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -16
 16
@@ -222,7 +223,7 @@ number-people
 number-people
 1
 100
-47
+49
 1
 1
 NIL
@@ -237,22 +238,7 @@ number-companies
 number-companies
 1
 100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-11
-85
-205
-118
-number-matchers
-number-matchers
-1
-100
-1
+26
 1
 1
 NIL
@@ -276,25 +262,25 @@ NIL
 1
 
 SLIDER
-12
-125
-205
-158
+11
+85
+206
+118
 number-locations
 number-locations
 1
 100
-7
+100
 1
 1
 NIL
 HORIZONTAL
 
 INPUTBOX
-13
-165
-205
-225
+12
+125
+204
+185
 min-salary
 121
 1
@@ -476,7 +462,7 @@ TEXTBOX
 275
 1349
 359
-in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+in each matching round, a limited of random pairs is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
 11
 0.0
 1
@@ -841,7 +827,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.1
+NetLogo 5.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
