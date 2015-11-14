@@ -2,30 +2,37 @@ globals
   [ U                                ;; number of unemployed people
     V                                ;; number of vacant jobs
     L                                ;; labour force ( U + number of employed people)
-    uLevel                           ;; unemployment level ( L - number of employed people)
+    uLevel                           ;; unemployment level ( L - U)
     ur                               ;; unemployment rate ( U / L )
     vr                               ;; vacancy rate ( V / L )
     p                                ;; participation rate ( L / size of the adult civilian population in working age )
-    S                                ;; minimum salary
-    matching-quality-threshold       ;; least necessary similarity
-    firing-quality                   ;; least productivity necessary
-    unexpected-firing
-    max-productivity-fluctuation
-    unexpected-company-motivation    ;; exceptional motivation for a company to find an employee, increases the similarity value of a matching
-    unexpected-worker-motivation     ;; exceptional motivatoin for a worker to find a job, increases the similarity value of a matching
-    exceptional-matching             ;; threshold below which the matching is considered to hold
-    matching-random-pair-number ]    ;; in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+    ;;matching-quality-threshold       ;; least necessary similarity
+    ;;firing-quality                   ;; least productivity necessary
+    ;;unexpected-firing
+    ;;max-productivity-fluctuation
+    ;;unexpected-company-motivation    ;; exceptional motivation for a company to find an employee, increases the similarity value of a matching
+    ;;unexpected-worker-motivation     ;; exceptional motivation for a worker to find a job, increases the similarity value of a matching
+    ;;exceptional-matching             ;; threshold below which the matching is considered to hold
+    ;;matching-random-pair-number     ;; in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+  ]
 
 breed [companies company]
 breed [people person]
 breed [matchers matcher]
 
-turtles-own
-  [ skills                           ;; skills of a worker       / skills needed for a job   (vector of 5 booleans)
-    location                         ;; location of a worker     / location for a job        (discrete value)
-    salary                           ;; salary/ effective salary          (minimum salary S) resp.)
-    state                            ;; employed/unemployed      / filled/vacant             ()
-    productivity ]                   ;; productivity of a worker / minimum productivity accepted by a company
+companies-own
+  [ skills                           ;; skills needed for a job   (vector of 5 booleans)
+    location                         ;; location for a job        (discrete value)
+    salary                           ;; effective salary          (minimum salary S) resp.)
+    state                            ;; filled/vacant             (true/false)
+    productivity ]                   ;; minimum productivity accepted
+
+people-own
+  [ skills                           ;; skills of a person        (vector of 5 booleans)
+    location                         ;; location of a person      (discrete value)
+    salary                           ;; salary                    (minimum salary S) resp.)
+    state                            ;; employed/unemployed       (true/false)
+    productivity ]                   ;; productivity of a person
 
 matchers-own
   [ unemployed-people                ;; people unemployed
@@ -38,56 +45,129 @@ matchers-own
 ;;
 to setup
   clear-all
-  ;;....
+  setup-constants
+  setup-companies
+  setup-people
+  setup-matchers
+  update-global-variables
+  update-display
   reset-ticks
 end
 
+;; set up basic constants of the model
+to setup-constants
+  ;;...
+end
 
+;; create the companies, then initialize their variables
+to setup-companies
+  create-companies number-companies [
+    set skills n-values 5 [random 2]
+    set location random number-locations
+    set salary min-salary
+    set state false
+    set productivity 0
+    setxy random-xcor random-ycor
+    set shape "house"
+    set size 1.5
+  ]
+end
+
+;; create people, then initialize their variables
+to setup-people
+  create-people number-people [
+    set skills n-values 5 [random 2]
+    set location random number-locations
+    set salary min-salary
+    set state false
+    set productivity 0
+    setxy random-xcor random-ycor
+    set shape "person business"
+    set size 1.5
+  ]
+end
+
+to setup-matchers
+  create-matchers number-matchers [
+    set unemployed-people people with [ state = false ]
+    set vacant-job-companies companies with [ state = false ]
+  ]
+end
+
+to update-global-variables
+  set U count people with [ state = false ]
+  set V count companies with [ state = false ]
+  set L U + count people with [ state = true ]
+  set uLevel L - U
+  set ur U / L
+  set vr V / L
+  set p L / count people
+end
+
+to update-display
+  ask people [
+    set color ifelse-value state [ green ] [ grey ]
+  ]
+  ask companies [
+    set color ifelse-value state [ green ] [ grey ]
+  ]
+end
+
+to go
+  ;;...
+  update-global-variables
+  update-display
+  tick
+end
 
 ;;
 ;; Companies Procedures
 ;;
-to ask-for-employee
-  ;;....
-end
 
-to fire
+to evaluate-employee
   ;;...
 end
 
-to hire
+to unlink-person-company
   ;;...
 end
-
-
-
-;;
-;; People Procedures
-;;
-to ask-for-job
-  ;;...
-end
-
-
 
 ;;
 ;; Matcher Procedures
 ;;
 to match
+  ask matchers [
+    let unemployed-people-chosen-left n-of ( matching-random-pair-number * count unemployed-people ) unemployed-people
+    let vacant-job-left n-of ( matching-random-pair-number * count vacant-job-companies ) vacant-job-companies
+    let number-pairs  min list ( matching-random-pair-number * count unemployed-people )( matching-random-pair-number * count vacant-job-companies )
+    foreach n-of number-pairs unemployed-people
+    [
+      let job n-of 1 vacant-job-companies
+      show compute-similarity ?1 job
+      show compute-similarity job ?1
+      show mean [1 2]
+      if 1 <= matching-quality-threshold [ link-person-company ?1 job ]
+    ]
+  ]
   ;;...
 end
 
-to compute-similarity
+to-report compute-similarity [agent job]
+  let agent-skills [skills] of agent
+  let job-skills [skills] of job
+  let result 0
+  foreach [0 1 2 3 4]
+  [
+    set result result + ( item ?1 agent-skills - item ?1 job-skills)
+  ]
+  report ( result + 5 ) / 10
   ;;...
 end
 
-to give-job
+to link-person-company [agent job]
   ;;...
 end
 
-to give-employee
-  ;;...
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
@@ -115,6 +195,291 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
+
+BUTTON
+22
+421
+95
+454
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+10
+10
+204
+43
+number-people
+number-people
+1
+100
+47
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+47
+205
+80
+number-companies
+number-companies
+1
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+11
+85
+205
+118
+number-matchers
+number-matchers
+1
+100
+1
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+117
+422
+180
+455
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+12
+125
+205
+158
+number-locations
+number-locations
+1
+100
+7
+1
+1
+NIL
+HORIZONTAL
+
+INPUTBOX
+13
+165
+205
+225
+min-salary
+121
+1
+0
+Number
+
+SLIDER
+660
+10
+891
+43
+matching-quality-threshold
+matching-quality-threshold
+0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+52
+891
+85
+firing-quality
+firing-quality
+0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+90
+892
+123
+unexpected-firing
+unexpected-firing
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+128
+892
+161
+max-productivity-fluctuation
+max-productivity-fluctuation
+0
+1
+0.3
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+660
+164
+893
+197
+unexpected-company-motivation
+unexpected-company-motivation
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+661
+201
+893
+234
+unexpected-worker-motivation
+unexpected-worker-motivation
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+662
+238
+893
+271
+exceptional-matching
+exceptional-matching
+0
+1
+0.2
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+662
+275
+894
+308
+matching-random-pair-number
+matching-random-pair-number
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+902
+20
+1052
+38
+least necessary similarity
+11
+0.0
+1
+
+TEXTBOX
+902
+60
+1052
+78
+least productivity necessary
+11
+0.0
+1
+
+TEXTBOX
+902
+165
+1258
+221
+exceptional motivation for a company to find an employee, increases the similarity value of a matching
+11
+0.0
+1
+
+TEXTBOX
+901
+200
+1242
+256
+exceptional motivation for a worker to find a job, increases the similarity value of a matching
+11
+0.0
+1
+
+TEXTBOX
+902
+240
+1052
+268
+threshold below which the matching is considered to hold
+11
+0.0
+1
+
+TEXTBOX
+901
+275
+1349
+359
+in each matching round, a limited of random paris is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -333,6 +698,23 @@ Rectangle -7500403 true true 127 79 172 94
 Polygon -7500403 true true 195 90 240 150 225 180 165 105
 Polygon -7500403 true true 105 90 60 150 75 180 135 105
 
+person business
+false
+0
+Rectangle -1 true false 120 90 180 180
+Polygon -13345367 true false 135 90 150 105 135 180 150 195 165 180 150 105 165 90
+Polygon -7500403 true true 120 90 105 90 60 195 90 210 116 154 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 183 153 210 210 240 195 195 90 180 90 150 165
+Circle -7500403 true true 110 5 80
+Rectangle -7500403 true true 127 76 172 91
+Line -16777216 false 172 90 161 94
+Line -16777216 false 128 90 139 94
+Polygon -13345367 true false 195 225 195 300 270 270 270 195
+Rectangle -13791810 true false 180 225 195 300
+Polygon -14835848 true false 180 226 195 226 270 196 255 196
+Polygon -13345367 true false 209 202 209 216 244 202 243 188
+Line -16777216 false 180 90 150 165
+Line -16777216 false 120 90 150 165
+
 plant
 false
 0
@@ -459,7 +841,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.0
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
