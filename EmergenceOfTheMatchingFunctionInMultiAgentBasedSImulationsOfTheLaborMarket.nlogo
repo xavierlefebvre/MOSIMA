@@ -6,10 +6,7 @@ globals [
   ur                       ;; unemployment rate ( U / L )
   vr                       ;; vacancy rate ( V / L )
   p                        ;; participation rate ( L / size of the adult civilian population in working age )
-  number-skills            ;; vector size of the skills attribute for companies and people
-  number-matchers          ;; number of matchers
-  unemployed-people        ;; people unemployed
-  vacant-job-companies     ;; companies with a vacant company
+  number-skills            ;; vector size of the skills attribute for companies and people (constant)
 ]
 
 breed [companies company]
@@ -22,6 +19,17 @@ turtles-own [              ;;          COMPANY           /     PERSON
   state                    ;; filled/vacant              /  employed/unemployed    (true/false)
   productivity             ;; min productivity accepted  /  person's productivity
 ]
+
+
+to go
+  regular-firing
+  unexpected-firing
+  match
+  update-global-variables
+  update-display
+  tick
+end
+
 
 ;;
 ;; Setup Procedures
@@ -40,9 +48,9 @@ end
 ;; set up basic constants of the model
 to setup-constants
   set number-skills 5
-  set number-matchers 1
 end
 
+;; dispatch in circle turtles ordered by breed
 to dispatch-turtles
   layout-circle sort-by < turtles ( (ceiling min list (world-width / 2) (world-height / 2)) - 1 )
 end
@@ -52,9 +60,9 @@ to setup-companies
   create-companies number-companies [
     set skills n-values number-skills [random 2]
     set location random number-locations
-    set salary min-salary
+    set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
     set state false
-    set productivity 0
+    set productivity random 9 + 1
     set shape "house"
   ]
 end
@@ -64,27 +72,21 @@ to setup-people
   create-people number-people [
     set skills n-values number-skills [random 2]
     set location random number-locations
-    set salary min-salary
+    set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
     set state false
-    set productivity 0
+    set productivity random 9 + 1
     set shape "person"
   ]
 end
 
 to update-global-variables
-  update-unemployment-variables
-  set U count unemployed-people
-  set V count vacant-job-companies
+  set U count people with [ state = false ]
+  set V count companies with [ state = false ]
   set L U + count people with [ state = true ]
   set uLevel L - U
   set ur U / L
   set vr V / L
   set p L / count people
-end
-
-to update-unemployment-variables
-  set unemployed-people people with [ state = false ]
-  set vacant-job-companies companies with [ state = false ]
 end
 
 to update-display
@@ -96,58 +98,66 @@ to update-display
   ]
 end
 
-to go
-  match
-  update-global-variables
-  update-display
-  tick
-end
+
 
 ;;
 ;; Companies Procedures
 ;;
-
-to evaluate-employee
-  ;;...
-end
-
-to unlink-person-company [person company]
-  ask person [
-    set state false
-  ]
-  ask company [
-    set state false
-    ask link-with person [die]
+to regular-firing
+  ask companies with [ state = true ] [
+    ask link-neighbors with [ ([productivity] of self / [productivity] of myself) < firing-quality-threshold ] [
+      unlink-person-company self myself
+    ]
   ]
 end
+
+to unexpected-firing
+  ask companies with [ state = true ] [
+    ask link-neighbors [
+      if (random-float 1) < unexpected-firing-rate [
+        unlink-person-company self myself
+      ]
+    ]
+  ]
+end
+
+to unlink-person-company [turtle1 turtle2]
+  ask turtle1 [
+    set state false
+  ]
+  ask turtle2 [
+    set state false
+    ask link-with turtle1 [die]
+  ]
+end
+
+
 
 ;;
 ;; Matcher Procedures
 ;;
 to match
-  let number-pairs ceiling min list ( matching-random-pair-number * count unemployed-people )( matching-random-pair-number * count vacant-job-companies )
+  let number-pairs ceiling min list ( matching-random-pair-number * count people with [ state = false ] )( matching-random-pair-number * count companies with [ state = false ] )
   repeat number-pairs [
-    let person one-of unemployed-people
-    let company one-of vacant-job-companies
+    let person one-of people with [ state = false ]
+    let company one-of companies with [ state = false ]
     let similarity mean list (compute-similarity person company) (compute-similarity company person)
     if similarity >= matching-quality-threshold [
       link-person-company person company
-      update-unemployment-variables
     ]
   ]
 end
 
-to-report compute-similarity [person company]
-  let skills-evaluation evaluate-skills person company
-  let location-evaluation evaluate-location person company
-  let salary-evaluation evaluate-salary person company
-  report ( mean (list skills-evaluation location-evaluation salary-evaluation) )
+to-report compute-similarity [turtle1 turtle2]
+  report ( mean (list (evaluate-skills turtle1 turtle2) (evaluate-location turtle1 turtle2) (evaluate-salary turtle1 turtle2) ) )
 end
 
-to-report evaluate-skills [person company]
-  report ((sum (map - [skills] of person [skills] of company)) + number-skills) / ( 2 * number-skills)
+;; reports turtle1's skills evaluation
+to-report evaluate-skills [turtle1 turtle2]
+  report ((sum filter [? < 0] (map - [skills] of turtle2 [skills] of turtle1)) + number-skills) / number-skills
 end
 
+;; reports distance evaluation between turtle 1 and turtle2
 to-report evaluate-location [turtle1 turtle2]
   report 1 - abs ( [location] of turtle1 - [location] of turtle2 ) / number-locations
 end
@@ -160,13 +170,13 @@ to-report evaluate-salary [turtle1 turtle2]
   report min list 1 ([salary] of turtle1 / [salary] of turtle2)
 end
 
-to link-person-company [person company]
-  ask person [
+to link-person-company [turtle1 turtle2]
+  ask turtle1 [
     set state true
   ]
-  ask company [
+  ask turtle2 [
     set state true
-    create-link-with person
+    create-link-with turtle1
   ]
 end
 @#$#@#$#@
@@ -223,7 +233,7 @@ number-people
 number-people
 1
 100
-49
+26
 1
 1
 NIL
@@ -270,7 +280,7 @@ number-locations
 number-locations
 1
 100
-100
+24
 1
 1
 NIL
@@ -282,7 +292,7 @@ INPUTBOX
 204
 185
 min-salary
-121
+100
 1
 0
 Number
@@ -296,7 +306,7 @@ matching-quality-threshold
 matching-quality-threshold
 0
 1
-0.5
+0.7
 0.1
 1
 NIL
@@ -307,8 +317,8 @@ SLIDER
 52
 891
 85
-firing-quality
-firing-quality
+firing-quality-threshold
+firing-quality-threshold
 0
 1
 0.5
@@ -322,8 +332,8 @@ SLIDER
 90
 892
 123
-unexpected-firing
-unexpected-firing
+unexpected-firing-rate
+unexpected-firing-rate
 0
 1
 0.1
@@ -466,6 +476,17 @@ in each matching round, a limited of random pairs is considered, somehow represe
 11
 0.0
 1
+
+INPUTBOX
+12
+191
+205
+251
+max-salary
+200
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
