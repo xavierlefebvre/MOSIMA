@@ -12,7 +12,7 @@ globals [
 breed [companies company]
 breed [people person]
 
-turtles-own [              ;;          COMPANY           /     PERSON 
+turtles-own [              ;;          COMPANY           /     PERSON
   skills                   ;; skills for a job           /  person skills          (vector of number-skills booleans)
   location                 ;; job location               /  person location        (discrete value)
   salary                   ;; job retribution            /  expected salary        (minimum salary S) resp.)
@@ -101,12 +101,24 @@ end
 ;; Companies Procedures
 ;;
 to regular-firing
+  ;;ask companies with [ state = true ] [
+  ;;  ask link-neighbors with [ ([productivity] of self / [productivity] of myself) < firing-quality-threshold ] [
+  ;;    unlink-person-company self myself
+  ;;  ]
+  ;;]
+
   ask companies with [ state = true ] [
-    ask link-neighbors with [ ([productivity] of self / [productivity] of myself) < firing-quality-threshold ] [
-      unlink-person-company self myself
+    ask link-neighbors [
+      let skills-required sum [skills] of myself
+      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of self) ([skills] of myself))
+      set productivity skills-match / skills-required
+      if ([productivity] of self / [productivity] of myself) < firing-quality-threshold [
+        unlink-person-company self myself
+      ]
     ]
   ]
 end
+
 
 to unexpected-firing
   ask companies with [ state = true ] [
@@ -230,7 +242,7 @@ number-people
 number-people
 1
 100
-26
+28
 1
 1
 NIL
@@ -245,7 +257,7 @@ number-companies
 number-companies
 1
 100
-26
+51
 1
 1
 NIL
@@ -318,7 +330,7 @@ firing-quality-threshold
 firing-quality-threshold
 0
 1
-0.5
+0.2
 0.1
 1
 NIL
@@ -484,6 +496,24 @@ max-salary
 1
 0
 Number
+
+PLOT
+725
+354
+925
+504
+plot 1
+NIL
+NIL
+0.0
+1.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 2 -16777216 true "" "clear-all-plots\nplotxy ur vr"
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -845,7 +875,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.0
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
