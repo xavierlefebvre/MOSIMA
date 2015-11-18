@@ -62,7 +62,7 @@ to setup-companies
     set location random number-locations
     set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
     set state false
-    set productivity random 9 + 1
+    set productivity random-float 1
     set shape "house"
   ]
 end
@@ -74,7 +74,7 @@ to setup-people
     set location random number-locations
     set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
     set state false
-    set productivity random 9 + 1
+    set productivity random-float 1
     set shape "person"
   ]
 end
@@ -90,10 +90,7 @@ to update-global-variables
 end
 
 to update-display
-  ask people [
-    set color ifelse-value state [ green ] [ grey ]
-  ]
-  ask companies [
+  ask turtles [
     set color ifelse-value state [ green ] [ grey ]
   ]
 end
