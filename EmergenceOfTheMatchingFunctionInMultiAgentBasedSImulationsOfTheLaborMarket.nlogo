@@ -20,6 +20,10 @@ turtles-own [              ;;          COMPANY           /     PERSON
   productivity             ;; min productivity accepted  /  person's productivity
 ]
 
+people-own [
+ resignation-value         ;; value that may make someone want to resign ( 1 is the highest 0 the lowest [ the lower the value the more the person will wanna resign] )
+  ]
+
 
 to go
   regular-firing
@@ -60,7 +64,9 @@ to setup-companies
   create-companies number-companies [
     set skills n-values number-skills [random 2]
     set location random number-locations
-    set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
+    set salary min-salary + (sum skills * (max-salary - min-salary) / number-skills ) + ifelse-value (random 2 = 1) [ random (max-salary - min-salary) / number-skills] [ -1 * random (max-salary - min-salary) / number-skills]
+    if salary > max-salary [set salary max-salary]
+    if salary < min-salary [set salary min-salary]
     set state false
     set productivity random-float 1
     set shape "house"
@@ -72,9 +78,12 @@ to setup-people
   create-people number-people [
     set skills n-values number-skills [random 2]
     set location random number-locations
-    set salary min-salary + ceiling ( (max-salary - min-salary) * random-float 1 )
+    set salary min-salary + (sum skills * (max-salary - min-salary) / number-skills ) + ifelse-value (random 2 = 1) [ random (max-salary - min-salary) / number-skills] [ -1 * random (max-salary - min-salary) / number-skills]
+    if salary > max-salary [set salary max-salary]
+    if salary < min-salary [set salary min-salary]
     set state false
     set productivity random-float 1
+    set resignation-value 1
     set shape "person"
   ]
 end
@@ -101,20 +110,14 @@ end
 ;; Companies Procedures
 ;;
 to regular-firing
-  ;;ask companies with [ state = true ] [
-  ;;  ask link-neighbors with [ ([productivity] of self / [productivity] of myself) < firing-quality-threshold ] [
-  ;;    unlink-person-company self myself
-  ;;  ]
-  ;;]
-
   ask companies with [ state = true ] [
     ask link-neighbors [
-      let skills-required sum [skills] of myself
-      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of self) ([skills] of myself))
-      set productivity skills-match / skills-required
       if ([productivity] of self / [productivity] of myself) < firing-quality-threshold [
         unlink-person-company self myself
       ]
+      let fluctuation random-float max-productivity-fluctuation
+      set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
+
     ]
   ]
 end
@@ -150,15 +153,38 @@ to match
   repeat number-pairs [
     let person one-of people with [ state = false ]
     let company one-of companies with [ state = false ]
-    let similarity mean list (compute-similarity person company) (compute-similarity company person)
+    let similarity mean list
+      (ifelse-value (random-float 1 < unexpected-worker-motivation)  [compute-similarity person company + max-motivation-fluctuation] [compute-similarity person company])
+      (ifelse-value (random-float 1 < unexpected-company-motivation) [compute-similarity company person + max-motivation-fluctuation] [compute-similarity company person])
     if similarity >= matching-quality-threshold [
       link-person-company person company
+      set-productivity-person person company
+      ask person [
+        set resignation-value 1
+      ]
     ]
   ]
 end
 
+to set-productivity-person [turtle1 turtle2]
+if (is-person? turtle1) and (is-company? turtle2) [
+      let skills-required sum [skills] of turtle2
+      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle1) ([skills] of turtle2))
+      ask turtle1 [
+       set productivity ifelse-value (skills-required > 0) [skills-match / skills-required] [1]
+      ]
+]
+if (is-person? turtle2) and (is-company? turtle1) [
+      let skills-required sum [skills] of turtle1
+      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle2) ([skills] of turtle1))
+      ask turtle2 [
+        set productivity ifelse-value (skills-required > 0) [skills-match / skills-required] [1]
+      ]
+]
+end
+
 to-report compute-similarity [turtle1 turtle2]
-  report ( mean (list (evaluate-skills turtle1 turtle2) (evaluate-location turtle1 turtle2) (evaluate-salary turtle1 turtle2) ) )
+  report (mean (list (evaluate-skills turtle1 turtle2) (evaluate-location turtle1 turtle2) (evaluate-salary turtle1 turtle2) ) )
 end
 
 ;; reports turtle1's skills evaluation
@@ -217,9 +243,9 @@ ticks
 30.0
 
 BUTTON
-22
+21
 421
-95
+94
 454
 NIL
 setup
@@ -240,10 +266,10 @@ SLIDER
 43
 number-people
 number-people
-1
+0
+400
+300
 100
-28
-1
 1
 NIL
 HORIZONTAL
@@ -255,10 +281,10 @@ SLIDER
 80
 number-companies
 number-companies
-1
+0
+400
 100
-51
-1
+100
 1
 NIL
 HORIZONTAL
@@ -289,7 +315,7 @@ number-locations
 number-locations
 1
 100
-24
+10
 1
 1
 NIL
@@ -315,7 +341,7 @@ matching-quality-threshold
 matching-quality-threshold
 0
 1
-0.7
+0.5
 0.1
 1
 NIL
@@ -330,7 +356,7 @@ firing-quality-threshold
 firing-quality-threshold
 0
 1
-0.2
+0.5
 0.1
 1
 NIL
@@ -405,7 +431,7 @@ exceptional-matching
 exceptional-matching
 0
 1
-0.2
+0
 0.1
 1
 NIL
@@ -420,7 +446,7 @@ matching-random-pair-number
 matching-random-pair-number
 0
 1
-0.1
+0.6
 0.1
 1
 NIL
@@ -480,7 +506,7 @@ TEXTBOX
 901
 275
 1349
-359
+317
 in each matching round, a limited of random pairs is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
 11
 0.0
@@ -498,13 +524,13 @@ max-salary
 Number
 
 PLOT
-725
-354
-925
-504
-plot 1
-NIL
-NIL
+664
+314
+926
+507
+Market's Tightness
+vr - vacancy ratio
+ur - unemployment rate
 0.0
 1.0
 0.0
@@ -513,7 +539,22 @@ true
 false
 "" ""
 PENS
-"default" 1.0 2 -16777216 true "" "clear-all-plots\nplotxy ur vr"
+"default" 1.0 2 -16777216 true "" "clear-all-plots\nplotxy vr ur"
+
+SLIDER
+1277
+175
+1473
+208
+max-motivation-fluctuation
+max-motivation-fluctuation
+0
+1
+0.1
+0.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
