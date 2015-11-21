@@ -22,7 +22,7 @@ turtles-own [              ;;          COMPANY           /     PERSON
 
 people-own [
  resignation-value         ;; value that may make someone want to resign ( 1 is the highest 0 the lowest [ the lower the value the more the person will wanna resign] )
-  ]
+]
 
 
 to go
@@ -154,8 +154,8 @@ to match
     let person one-of people with [ state = false ]
     let company one-of companies with [ state = false ]
     let similarity mean list
-      (ifelse-value (random-float 1 < unexpected-worker-motivation)  [compute-similarity person company + max-motivation-fluctuation] [compute-similarity person company])
-      (ifelse-value (random-float 1 < unexpected-company-motivation) [compute-similarity company person + max-motivation-fluctuation] [compute-similarity company person])
+      (ifelse-value (random-float 1 < unexpected-worker-motivation)  [evaluate person company + max-motivation-fluctuation] [evaluate person company])
+      (ifelse-value (random-float 1 < unexpected-company-motivation) [evaluate company person + max-motivation-fluctuation] [evaluate company person])
     if similarity >= matching-quality-threshold [
       link-person-company person company
       set-productivity-person person company
@@ -169,21 +169,21 @@ end
 to set-productivity-person [turtle1 turtle2]
 if (is-person? turtle1) and (is-company? turtle2) [
       let skills-required sum [skills] of turtle2
-      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle1) ([skills] of turtle2))
+      let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle1) ([skills] of turtle2))
       ask turtle1 [
-       set productivity ifelse-value (skills-required > 0) [skills-match / skills-required] [1]
+       set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
       ]
 ]
 if (is-person? turtle2) and (is-company? turtle1) [
       let skills-required sum [skills] of turtle1
-      let skills-match length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle2) ([skills] of turtle1))
+      let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle2) ([skills] of turtle1))
       ask turtle2 [
-        set productivity ifelse-value (skills-required > 0) [skills-match / skills-required] [1]
+        set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
       ]
 ]
 end
 
-to-report compute-similarity [turtle1 turtle2]
+to-report evaluate [turtle1 turtle2]
   report (mean (list (evaluate-skills turtle1 turtle2) (evaluate-location turtle1 turtle2) (evaluate-salary turtle1 turtle2) ) )
 end
 
@@ -916,7 +916,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.1
+NetLogo 5.2.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
