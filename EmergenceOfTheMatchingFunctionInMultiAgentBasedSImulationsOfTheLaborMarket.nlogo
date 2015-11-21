@@ -41,8 +41,8 @@ end
 to setup
   clear-all
   setup-constants
-  setup-companies
   setup-people
+  setup-companies
   dispatch-turtles
   update-global-variables
   update-display
@@ -56,7 +56,14 @@ end
 
 ;; dispatch in circle turtles ordered by breed
 to dispatch-turtles
-  layout-circle sort-by < turtles ( (ceiling min list (world-width / 2) (world-height / 2)) - 1 )
+  let interval-people (world-height - 2) / number-people
+  let interval-companies (world-height - 2) / number-companies
+  ask people[
+    setxy (min-pxcor + 1) (1 + min-pycor + who * interval-people)
+  ]
+  ask companies [
+    setxy (max-pxcor - 1) (1 + min-pycor + (who - number-people) * interval-companies)
+  ]
 end
 
 ;; create the companies, then initialize their variables
@@ -95,7 +102,7 @@ to update-global-variables
   set uLevel L - U
   set ur U / L
   set vr V / L
-  set p L / count people
+  set p L / number-people
 end
 
 to update-display
@@ -268,7 +275,7 @@ number-people
 number-people
 0
 400
-300
+15
 100
 1
 NIL
