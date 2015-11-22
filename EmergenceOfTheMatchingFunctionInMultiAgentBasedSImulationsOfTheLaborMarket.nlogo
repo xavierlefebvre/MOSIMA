@@ -54,6 +54,11 @@ end
 ;;
 ;; Setup Procedures
 ;;
+to clear
+  clear-all
+  reset-ticks
+end
+
 to setup
   clear-globals
   clear-ticks
@@ -272,7 +277,7 @@ ticks
 BUTTON
 710
 12
-778
+765
 45
 NIL
 setup
@@ -317,9 +322,9 @@ NIL
 HORIZONTAL
 
 BUTTON
-782
+768
 12
-845
+823
 45
 NIL
 go
@@ -492,9 +497,9 @@ Number
 
 PLOT
 710
-55
-1009
-256
+85
+985
+286
 Market's Tightness
 vr - vacancy ratio
 ur - unemployment rate
@@ -506,7 +511,7 @@ true
 false
 "" ""
 PENS
-"beveridge-pen" 1.0 0 -7500403 true "" ""
+"beveridge-pen" 1.0 2 -7500403 true "" ""
 
 SLIDER
 14
@@ -524,10 +529,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-848
-13
-1008
-46
+826
+12
+983
+45
 Generate Beveridge curve
 generateBeveridgeCurve
 NIL
@@ -588,6 +593,23 @@ TEXTBOX
 Agents
 16
 0.0
+1
+
+BUTTON
+710
+48
+983
+81
+Clear all
+clear
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
 
 @#$#@#$#@
