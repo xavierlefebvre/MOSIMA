@@ -21,7 +21,7 @@ turtles-own [              ;;          COMPANY           /     PERSON
 ]
 
 people-own [
- resignation-value         ;; value that may make someone want to resign ( 1 is the highest 0 the lowest [ the lower the value the more the person will wanna resign] )
+  resignation-value        ;; value that may make someone want to resign ( 1 is the highest 0 the lowest [ the lower the value the more the person will wanna resign] )
 ]
 
 
@@ -33,8 +33,16 @@ to generateBeveridgeCurve
     foreach [100 200 300 400] [
       set number-companies ?
       setup
-      repeat 50 [
+      let vr-sample []
+      let ur-sample []
+      while[ (ticks < max-number-simulation) and ( (length vr-sample < 2) or (abs 1 - (mean butlast vr-sample / mean butfirst vr-sample)  > sample-variation and abs 1 - (mean butlast ur-sample / mean butfirst ur-sample)  > sample-variation) )][
         go
+        set vr-sample fput vr vr-sample
+        set ur-sample fput ur ur-sample
+        if (length vr-sample > sample-size + 1)[
+          set vr-sample butlast vr-sample
+          set ur-sample butlast ur-sample
+        ]
       ]
       plotxy vr ur
     ]
@@ -249,11 +257,11 @@ end
 @#$#@#$#@
 GRAPHICS-WINDOW
 267
-11
+30
 694
-686
+781
 16
-25
+28
 12.64
 1
 10
@@ -266,8 +274,8 @@ GRAPHICS-WINDOW
 1
 -16
 16
--25
-25
+-28
+28
 0
 0
 1
@@ -275,10 +283,10 @@ ticks
 30.0
 
 BUTTON
-710
-12
-765
-45
+714
+29
+769
+62
 NIL
 setup
 NIL
@@ -301,7 +309,7 @@ number-people
 0
 400
 400
-100
+1
 1
 NIL
 HORIZONTAL
@@ -316,16 +324,16 @@ number-companies
 0
 400
 400
-100
+1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-768
-12
-823
-45
+772
+29
+827
+62
 NIL
 go
 T
@@ -339,10 +347,10 @@ NIL
 1
 
 SLIDER
-15
-650
-246
-683
+13
+615
+244
+648
 number-locations
 number-locations
 1
@@ -365,25 +373,25 @@ min-salary
 Number
 
 SLIDER
-12
-206
+14
+198
+245
+231
+matching-quality-threshold
+matching-quality-threshold
+0
+1
+0.4
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+13
+302
 243
-239
-matching-quality-threshold
-matching-quality-threshold
-0
-1
-0.5
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-11
-318
-241
-351
+335
 firing-quality-threshold
 firing-quality-threshold
 0
@@ -395,10 +403,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-11
-353
-242
-386
+13
+337
+244
+370
 unexpected-firing-rate
 unexpected-firing-rate
 0
@@ -410,10 +418,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-11
-388
-242
-421
+13
+372
+244
+405
 max-productivity-fluctuation
 max-productivity-fluctuation
 0
@@ -425,27 +433,12 @@ NIL
 HORIZONTAL
 
 SLIDER
-13
-462
-246
-495
-unexpected-company-motivation
-unexpected-company-motivation
-0
-1
-0.1
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-13
-498
+12
+440
 245
-531
-unexpected-worker-motivation
-unexpected-worker-motivation
+473
+unexpected-company-motivation
+unexpected-company-motivation
 0
 1
 0.1
@@ -456,14 +449,14 @@ HORIZONTAL
 
 SLIDER
 12
-241
-243
-274
-exceptional-matching
-exceptional-matching
+476
+244
+509
+unexpected-worker-motivation
+unexpected-worker-motivation
 0
 1
-0
+0.1
 0.1
 1
 NIL
@@ -471,9 +464,24 @@ HORIZONTAL
 
 SLIDER
 14
-613
-246
-646
+233
+245
+266
+exceptional-matching
+exceptional-matching
+0
+1
+0.2
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+12
+578
+244
+611
 matching-random-pair-number
 matching-random-pair-number
 0
@@ -496,10 +504,10 @@ max-salary
 Number
 
 PLOT
-710
-85
-985
-286
+714
+102
+989
+303
 Market's Tightness
 vr - vacancy ratio
 ur - unemployment rate
@@ -514,10 +522,10 @@ PENS
 "beveridge-pen" 1.0 2 -7500403 true "" ""
 
 SLIDER
-14
-535
-246
-568
+12
+513
+245
+546
 max-motivation-fluctuation
 max-motivation-fluctuation
 0
@@ -529,10 +537,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-826
-12
-983
-45
+830
+29
+987
+62
 Generate Beveridge curve
 generateBeveridgeCurve
 NIL
@@ -546,40 +554,40 @@ NIL
 1
 
 TEXTBOX
-15
-186
-165
-206
+17
+178
+167
+198
 Matching parameters
 16
 0.0
 1
 
 TEXTBOX
-13
-297
-163
-317
+15
+281
+165
+301
 Firing parameters
 16
 0.0
 1
 
 TEXTBOX
-15
-441
-192
-461
+14
+419
+191
+439
 Motivation parameters
 16
 0.0
 1
 
 TEXTBOX
-16
-593
-207
-613
+14
+558
+205
+578
 Environment parameters
 16
 0.0
@@ -596,10 +604,10 @@ Agents
 1
 
 BUTTON
-710
-48
-983
-81
+714
+65
+987
+98
 Clear all
 clear
 NIL
@@ -610,6 +618,53 @@ NIL
 NIL
 NIL
 NIL
+1
+
+INPUTBOX
+14
+682
+144
+742
+max-number-simulation
+500
+1
+0
+Number
+
+INPUTBOX
+147
+681
+246
+741
+sample-size
+100
+1
+0
+Number
+
+SLIDER
+14
+745
+246
+778
+sample-variation
+sample-variation
+0
+1
+0.02
+0.01
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+15
+662
+214
+688
+Stop condition parameters
+16
+0.0
 1
 
 @#$#@#$#@
