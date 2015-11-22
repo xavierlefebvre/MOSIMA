@@ -22,6 +22,7 @@ turtles-own [              ;;          COMPANY           /     PERSON
 
 people-own [
   resignation-value        ;; value that may make someone want to resign ( 1 is the highest 0 the lowest [ the lower the value the more the person will wanna resign] )
+  employement-tick         ;; simulation
 ]
 
 
@@ -50,6 +51,7 @@ to generateBeveridgeCurve
 end
 
 to go
+  learning
   regular-firing
   unexpected-firing
   match
@@ -152,10 +154,45 @@ end
 to random-resign [company]
   if (random 1 < 0.1) [ ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
     unlink-person-company self company
-    print "I quit"
   ]
 end
 
+to resign [company]
+  if (resignation-value < resignation-threshold) [
+    unlink-person-company self company
+      ]
+  let fluctuation random-float max-resignation-fluctuation
+  set resignation-value ifelse-value (random 2 = 1)[min list 1 (resignation-value + fluctuation) ] [max list 0 (resignation-value - fluctuation)]
+end
+
+to learning
+  ask people with [ state = true] [
+    if (employement-tick + learning-time = ticks ) [
+      let company-skills [skills] of one-of link-neighbors
+      let my-skills [skills] of self
+      show word company-skills my-skills
+      let turn 0
+      repeat number-skills [
+        if ( item turn my-skills != item turn company-skills) [
+          if (item turn my-skills = 0) [ set my-skills replace-item turn my-skills 1 show my-skills]
+        ]
+        set turn turn + 1
+      ]
+    ]
+    if (employement-tick + forgetting-time = ticks ) [
+      let company-skills [skills] of one-of link-neighbors
+      let my-skills [skills] of self
+      show word company-skills my-skills
+      let turn 0
+      repeat number-skills [
+        if ( item turn my-skills != item turn company-skills) [
+          if (item turn my-skills = 1 ) [ set my-skills replace-item turn my-skills 0  show my-skills]
+        ]
+        set turn turn + 1
+      ]
+    ]
+  ]
+end
 
 ;;
 ;; Companies Procedures
@@ -169,7 +206,7 @@ to regular-firing
       let fluctuation random-float max-productivity-fluctuation
       set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
       if (link-neighbor? myself) [
-        random-resign myself
+        resign myself
       ]
     ]
   ]
@@ -214,6 +251,7 @@ to match
       set-productivity-person person company
       ask person [
         set resignation-value 1
+        set employement-tick ticks
       ]
     ]
   ]
@@ -679,6 +717,51 @@ Stop condition parameters
 16
 0.0
 1
+
+SLIDER
+816
+402
+1021
+435
+resignation-threshold
+resignation-threshold
+0
+1
+1
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+816
+441
+1045
+474
+max-resignation-fluctuation
+max-resignation-fluctuation
+0
+1
+0.2
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+820
+487
+992
+520
+learning-time
+learning-time
+0
+100
+1
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
