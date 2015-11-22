@@ -25,6 +25,22 @@ people-own [
 ]
 
 
+to generateBeveridgeCurve
+  set-current-plot "Market's Tightness"
+  set-current-plot-pen "beveridge-pen"
+  foreach [100 200 300 400] [
+    set number-people ?
+    foreach [100 200 300 400] [
+      set number-companies ?
+      setup
+      repeat 50 [
+        go
+      ]
+      plotxy vr ur
+    ]
+  ]
+end
+
 to go
   regular-firing
   unexpected-firing
@@ -39,7 +55,12 @@ end
 ;; Setup Procedures
 ;;
 to setup
-  clear-all
+  clear-globals
+  clear-ticks
+  clear-turtles
+  clear-patches
+  clear-drawing
+  clear-output
   setup-constants
   setup-people
   setup-companies
@@ -124,7 +145,6 @@ to regular-firing
       ]
       let fluctuation random-float max-productivity-fluctuation
       set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
-
     ]
   ]
 end
@@ -174,20 +194,20 @@ to match
 end
 
 to set-productivity-person [turtle1 turtle2]
-if (is-person? turtle1) and (is-company? turtle2) [
-      let skills-required sum [skills] of turtle2
-      let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle1) ([skills] of turtle2))
-      ask turtle1 [
-       set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
-      ]
-]
-if (is-person? turtle2) and (is-company? turtle1) [
-      let skills-required sum [skills] of turtle1
-      let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle2) ([skills] of turtle1))
-      ask turtle2 [
-        set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
-      ]
-]
+  if (is-person? turtle1) and (is-company? turtle2) [
+    let skills-required sum [skills] of turtle2
+    let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle1) ([skills] of turtle2))
+    ask turtle1 [
+      set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
+    ]
+  ]
+  if (is-person? turtle2) and (is-company? turtle1) [
+    let skills-required sum [skills] of turtle1
+    let skills-matched length filter [ ? = true] (map [ ?1 = 1 and ?2 = 1] ([skills] of turtle2) ([skills] of turtle1))
+    ask turtle2 [
+      set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
+    ]
+  ]
 end
 
 to-report evaluate [turtle1 turtle2]
@@ -223,13 +243,13 @@ to link-person-company [turtle1 turtle2]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-649
-470
+267
+11
+694
+686
 16
-16
-13.0
+25
+12.64
 1
 10
 1
@@ -241,8 +261,8 @@ GRAPHICS-WINDOW
 1
 -16
 16
--16
-16
+-25
+25
 0
 0
 1
@@ -250,10 +270,10 @@ ticks
 30.0
 
 BUTTON
-21
-421
-94
-454
+710
+12
+778
+45
 NIL
 setup
 NIL
@@ -267,40 +287,40 @@ NIL
 1
 
 SLIDER
-10
-10
-204
-43
+14
+97
+245
+130
 number-people
 number-people
 0
 400
-15
+400
 100
 1
 NIL
 HORIZONTAL
 
 SLIDER
-10
-47
-205
-80
+14
+134
+245
+167
 number-companies
 number-companies
 0
 400
-100
+400
 100
 1
 NIL
 HORIZONTAL
 
 BUTTON
-117
-422
-180
-455
+782
+12
+845
+45
 NIL
 go
 T
@@ -314,10 +334,10 @@ NIL
 1
 
 SLIDER
-11
-85
-206
-118
+15
+650
+246
+683
 number-locations
 number-locations
 1
@@ -329,10 +349,10 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-12
-125
-204
-185
+15
+31
+123
+91
 min-salary
 100
 1
@@ -340,10 +360,10 @@ min-salary
 Number
 
 SLIDER
-660
-10
-891
-43
+12
+206
+243
+239
 matching-quality-threshold
 matching-quality-threshold
 0
@@ -355,10 +375,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-661
-52
-891
-85
+11
+318
+241
+351
 firing-quality-threshold
 firing-quality-threshold
 0
@@ -370,10 +390,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-661
-90
-892
-123
+11
+353
+242
+386
 unexpected-firing-rate
 unexpected-firing-rate
 0
@@ -385,10 +405,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-661
-128
-892
-161
+11
+388
+242
+421
 max-productivity-fluctuation
 max-productivity-fluctuation
 0
@@ -400,10 +420,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-660
-164
-893
-197
+13
+462
+246
+495
 unexpected-company-motivation
 unexpected-company-motivation
 0
@@ -415,10 +435,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-661
-201
-893
-234
+13
+498
+245
+531
 unexpected-worker-motivation
 unexpected-worker-motivation
 0
@@ -430,10 +450,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-662
-238
-893
-271
+12
+241
+243
+274
 exceptional-matching
 exceptional-matching
 0
@@ -445,10 +465,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-662
-275
-894
-308
+14
+613
+246
+646
 matching-random-pair-number
 matching-random-pair-number
 0
@@ -459,71 +479,11 @@ matching-random-pair-number
 NIL
 HORIZONTAL
 
-TEXTBOX
-902
-20
-1052
-38
-least necessary similarity
-11
-0.0
-1
-
-TEXTBOX
-902
-60
-1052
-78
-least productivity necessary
-11
-0.0
-1
-
-TEXTBOX
-902
-165
-1258
-221
-exceptional motivation for a company to find an employee, increases the similarity value of a matching
-11
-0.0
-1
-
-TEXTBOX
-901
-200
-1242
-256
-exceptional motivation for a worker to find a job, increases the similarity value of a matching
-11
-0.0
-1
-
-TEXTBOX
-902
-240
-1052
-268
-threshold below which the matching is considered to hold
-11
-0.0
-1
-
-TEXTBOX
-901
-275
-1349
-317
-in each matching round, a limited of random pairs is considered, somehow representing the frictions resulting  from incomplete knowledge of the agents
-11
-0.0
-1
-
 INPUTBOX
-12
-191
-205
-251
+126
+31
+245
+91
 max-salary
 200
 1
@@ -531,10 +491,10 @@ max-salary
 Number
 
 PLOT
-664
-314
-926
-507
+710
+55
+1009
+256
 Market's Tightness
 vr - vacancy ratio
 ur - unemployment rate
@@ -546,13 +506,13 @@ true
 false
 "" ""
 PENS
-"default" 1.0 2 -16777216 true "" "clear-all-plots\nplotxy vr ur"
+"beveridge-pen" 1.0 0 -7500403 true "" ""
 
 SLIDER
-1277
-175
-1473
-208
+14
+535
+246
+568
 max-motivation-fluctuation
 max-motivation-fluctuation
 0
@@ -562,6 +522,73 @@ max-motivation-fluctuation
 1
 NIL
 HORIZONTAL
+
+BUTTON
+848
+13
+1008
+46
+Generate Beveridge curve
+generateBeveridgeCurve
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+15
+186
+165
+206
+Matching parameters
+16
+0.0
+1
+
+TEXTBOX
+13
+297
+163
+317
+Firing parameters
+16
+0.0
+1
+
+TEXTBOX
+15
+441
+192
+461
+Motivation parameters
+16
+0.0
+1
+
+TEXTBOX
+16
+593
+207
+613
+Environment parameters
+16
+0.0
+1
+
+TEXTBOX
+19
+10
+169
+30
+Agents
+16
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
