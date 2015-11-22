@@ -145,6 +145,16 @@ to update-display
   ]
 end
 
+;;
+;; Person Procedures
+;;
+
+to random-resign [company]
+  if (random 1 < 0.1) [ ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
+    unlink-person-company self company
+    print "I quit"
+  ]
+end
 
 
 ;;
@@ -158,6 +168,9 @@ to regular-firing
       ]
       let fluctuation random-float max-productivity-fluctuation
       set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
+      if (link-neighbor? myself) [
+        random-resign myself
+      ]
     ]
   ]
 end
@@ -426,7 +439,7 @@ max-productivity-fluctuation
 max-productivity-fluctuation
 0
 1
-0.3
+0.4
 0.1
 1
 NIL
@@ -1027,7 +1040,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.0
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
