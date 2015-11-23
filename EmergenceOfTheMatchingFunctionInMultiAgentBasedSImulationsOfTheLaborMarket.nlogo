@@ -25,7 +25,9 @@ people-own [
   employement-tick         ;; simulation
 ]
 
-
+;;
+;; Procedure to generate the Beveridge curve
+;;
 to generateBeveridgeCurve
   set-current-plot "Market's Tightness"
   set-current-plot-pen "beveridge-pen"
@@ -56,6 +58,9 @@ to generateBeveridgeCurve
   ]
 end
 
+;;
+;; Main Loop
+;;
 to go
   learning
   regular-lay-off
@@ -182,26 +187,10 @@ end
 to learning
   ask people with [ state = true] [
     if (employement-tick + learning-time = ticks ) [
-      let company-skills [skills] of one-of link-neighbors
-      let my-skills [skills] of self
-      let turn 0
-      repeat number-skills [
-        if ( item turn my-skills != item turn company-skills) [
-          if (item turn my-skills = 0) [ set my-skills replace-item turn my-skills 1]
-        ]
-        set turn turn + 1
-      ]
+      set skills (map [max list (?1) (?2)] skills ([skills] of one-of link-neighbors) )
     ]
     if (employement-tick + forgetting-time = ticks ) [
-      let company-skills [skills] of one-of link-neighbors
-      let my-skills [skills] of self
-      let turn 0
-      repeat number-skills [
-        if ( item turn my-skills != item turn company-skills) [
-          if (item turn my-skills = 1 ) [ set my-skills replace-item turn my-skills 0  ]
-        ]
-        set turn turn + 1
-      ]
+      set skills (map [min list (?1) (?2)] skills ([skills] of one-of link-neighbors) )
     ]
   ]
 end
@@ -220,7 +209,6 @@ to regular-lay-off
     ]
   ]
 end
-
 
 to unexpected-lay-off
   ask companies with [ state = true ] [
@@ -394,7 +382,7 @@ number-people
 number-people
 0
 400
-400
+70
 1
 1
 NIL
@@ -409,7 +397,7 @@ number-companies
 number-companies
 0
 400
-400
+61
 1
 1
 NIL
@@ -597,10 +585,10 @@ PLOT
 Market's Tightness
 ur - unemployment rate
 vr - vacancy ratio
-0.0
+0.75
 1.0
 0.0
-1.0
+3.75
 true
 false
 "" ""
@@ -792,7 +780,7 @@ learning-time
 learning-time
 0
 100
-0
+1
 1
 1
 NIL
@@ -841,7 +829,7 @@ CHOOSER
 matching-function
 matching-function
 "similarity" "evaluation"
-0
+1
 
 INPUTBOX
 71
@@ -853,6 +841,24 @@ simulation-number
 1
 0
 Number
+
+PLOT
+717
+620
+949
+780
+ur
+ticks
+ur
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot ur"
 
 @#$#@#$#@
 ## WHAT IS IT?
