@@ -51,7 +51,7 @@ to generateBeveridgeCurve
         set vr-plot fput mean vr-sample vr-plot
         set ur-plot fput mean ur-sample ur-plot
       ]
-      plotxy mean vr-plot mean ur-plot
+      plotxy mean ur-plot mean vr-plot
     ]
   ]
 end
@@ -142,8 +142,7 @@ end
 to update-global-variables
   set U count people with [ state = false ]
   set V count companies with [ state = false ]
-  set L U + count people with [ state = true ]
-  set uLevel L - U
+  set L number-people
   set ur U / L
   set vr V / L
   set p L / number-people
@@ -596,8 +595,8 @@ PLOT
 991
 335
 Market's Tightness
-vr - vacancy ratio
 ur - unemployment rate
+vr - vacancy ratio
 0.0
 1.0
 0.0
