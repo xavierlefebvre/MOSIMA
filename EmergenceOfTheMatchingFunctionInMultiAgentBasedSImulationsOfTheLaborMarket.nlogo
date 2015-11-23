@@ -45,7 +45,7 @@ to generateBeveridgeCurve
           set ur-sample butlast ur-sample
         ]
       ]
-      plotxy vr ur
+      plotxy mean vr-sample mean ur-sample
     ]
   ]
 end
@@ -170,11 +170,10 @@ to learning
     if (employement-tick + learning-time = ticks ) [
       let company-skills [skills] of one-of link-neighbors
       let my-skills [skills] of self
-      show word company-skills my-skills
       let turn 0
       repeat number-skills [
         if ( item turn my-skills != item turn company-skills) [
-          if (item turn my-skills = 0) [ set my-skills replace-item turn my-skills 1 show my-skills]
+          if (item turn my-skills = 0) [ set my-skills replace-item turn my-skills 1]
         ]
         set turn turn + 1
       ]
@@ -182,11 +181,10 @@ to learning
     if (employement-tick + forgetting-time = ticks ) [
       let company-skills [skills] of one-of link-neighbors
       let my-skills [skills] of self
-      show word company-skills my-skills
       let turn 0
       repeat number-skills [
         if ( item turn my-skills != item turn company-skills) [
-          if (item turn my-skills = 1 ) [ set my-skills replace-item turn my-skills 0  show my-skills]
+          if (item turn my-skills = 1 ) [ set my-skills replace-item turn my-skills 0  ]
         ]
         set turn turn + 1
       ]
