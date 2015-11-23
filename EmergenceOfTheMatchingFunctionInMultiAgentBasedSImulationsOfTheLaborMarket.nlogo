@@ -52,8 +52,9 @@ end
 
 to go
   learning
-  regular-firing
-  unexpected-firing
+  regular-lay-off
+  unexpected-lay-off
+  resign
   match
   update-global-variables
   update-display
@@ -150,19 +151,26 @@ end
 ;;
 ;; Person Procedures
 ;;
-
-to random-resign [company]
-  if (random 1 < 0.1) [ ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
-    unlink-person-company self company
+to random-resign
+  ask companies with [ state = true ] [
+    ask link-neighbors [
+      if (random 1 < 0.1) [ ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
+        unlink-person-company self myself
+      ]
+    ]
   ]
 end
 
-to resign [company]
-  if (resignation-value < resignation-threshold) [
-    unlink-person-company self company
+to resign 
+  ask companies with [ state = true ] [
+    ask link-neighbors [
+      if (resignation-value < resignation-threshold) [
+        unlink-person-company self myself
       ]
-  let fluctuation random-float max-resignation-fluctuation
-  set resignation-value ifelse-value (random 2 = 1)[min list 1 (resignation-value + fluctuation) ] [max list 0 (resignation-value - fluctuation)]
+      let fluctuation random-float max-resignation-fluctuation
+      set resignation-value ifelse-value (random 2 = 1)[min list 1 (resignation-value + fluctuation) ] [max list 0 (resignation-value - fluctuation)]
+    ]
+  ]
 end
 
 to learning
@@ -195,26 +203,24 @@ end
 ;;
 ;; Companies Procedures
 ;;
-to regular-firing
+to regular-lay-off
   ask companies with [ state = true ] [
     ask link-neighbors [
-      if ([productivity] of self / [productivity] of myself) < firing-quality-threshold [
+      if ([productivity] of self / [productivity] of myself) < lay-off-quality-threshold [
         unlink-person-company self myself
+        print "i quit"
       ]
       let fluctuation random-float max-productivity-fluctuation
       set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
-      if (link-neighbor? myself) [
-        resign myself
-      ]
     ]
   ]
 end
 
 
-to unexpected-firing
+to unexpected-lay-off
   ask companies with [ state = true ] [
     ask link-neighbors [
-      if (random-float 1) < unexpected-firing-rate [
+      if (random-float 1) < unexpected-lay-off-rate [
         unlink-person-company self myself
       ]
     ]
@@ -241,10 +247,20 @@ to match
   repeat number-pairs [
     let person one-of people with [ state = false ]
     let company one-of companies with [ state = false ]
-    let similarity mean list
+    let matching-quality 0
+    
+    if(matching-function = "similarity") [
+      set matching-quality mean list
+      (ifelse-value (random-float 1 < unexpected-worker-motivation)  [evaluate-similarity person company + max-motivation-fluctuation] [evaluate-similarity person company])
+      (ifelse-value (random-float 1 < unexpected-company-motivation) [evaluate-similarity company person + max-motivation-fluctuation] [evaluate-similarity company person])
+    ]
+    if(matching-function = "evaluation") [
+      set matching-quality mean list
       (ifelse-value (random-float 1 < unexpected-worker-motivation)  [evaluate person company + max-motivation-fluctuation] [evaluate person company])
       (ifelse-value (random-float 1 < unexpected-company-motivation) [evaluate company person + max-motivation-fluctuation] [evaluate company person])
-    if similarity >= matching-quality-threshold [
+    ]
+    
+    if matching-quality >= matching-quality-threshold [
       link-person-company person company
       set-productivity-person person company
       ask person [
@@ -270,6 +286,22 @@ to set-productivity-person [turtle1 turtle2]
       set productivity ifelse-value (skills-required > 0) [skills-matched / skills-required] [1]
     ]
   ]
+end
+
+to-report evaluate-similarity [turtle1 turtle2]
+  report (mean (list (evaluate-similarity-skills turtle1 turtle2) (evaluate-similarity-location turtle1 turtle2) (evaluate-similarity-salary turtle1 turtle2) ) )
+end
+
+to-report evaluate-similarity-skills [turtle1 turtle2]
+  report length filter [ ? = true ] (map [?1 = ?2] [skills] of turtle1 [skills] of turtle2) / number-skills
+end
+
+to-report evaluate-similarity-location [turtle1 turtle2]
+  report ifelse-value ([location] of turtle1 = [location] of turtle2) [1] [0]
+end
+
+to-report evaluate-similarity-salary [turtle1 turtle2]
+  report abs ([salary] of turtle1 - [salary] of turtle2) / (max list ([salary] of turtle1) ([salary] of turtle2))
 end
 
 to-report evaluate [turtle1 turtle2]
@@ -357,7 +389,7 @@ number-people
 number-people
 0
 400
-400
+100
 1
 1
 NIL
@@ -372,7 +404,7 @@ number-companies
 number-companies
 0
 400
-400
+100
 1
 1
 NIL
@@ -441,8 +473,8 @@ SLIDER
 302
 243
 335
-firing-quality-threshold
-firing-quality-threshold
+lay-off-quality-threshold
+lay-off-quality-threshold
 0
 1
 0.5
@@ -456,8 +488,8 @@ SLIDER
 337
 244
 370
-unexpected-firing-rate
-unexpected-firing-rate
+unexpected-lay-off-rate
+unexpected-lay-off-rate
 0
 1
 0.1
@@ -553,10 +585,10 @@ max-salary
 Number
 
 PLOT
-714
-102
-989
-303
+716
+101
+991
+335
 Market's Tightness
 vr - vacancy ratio
 ur - unemployment rate
@@ -615,9 +647,9 @@ Matching parameters
 TEXTBOX
 15
 281
-165
-301
-Firing parameters
+181
+319
+Lay-off parameters
 16
 0.0
 1
@@ -717,25 +749,25 @@ Stop condition parameters
 1
 
 SLIDER
-816
-402
-1021
-435
+717
+467
+947
+500
 resignation-threshold
 resignation-threshold
 0
 1
-1
+0.15
 0.05
 1
 NIL
 HORIZONTAL
 
 SLIDER
-816
-441
-1045
-474
+717
+505
+948
+538
 max-resignation-fluctuation
 max-resignation-fluctuation
 0
@@ -747,10 +779,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-820
-487
-992
-520
+717
+363
+948
+396
 learning-time
 learning-time
 0
@@ -762,10 +794,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-807
-563
-979
-596
+717
+400
+948
+433
 forgetting-time
 forgetting-time
 0
@@ -775,6 +807,36 @@ forgetting-time
 1
 NIL
 HORIZONTAL
+
+TEXTBOX
+717
+342
+893
+380
+Learning parameters
+16
+0.0
+1
+
+TEXTBOX
+717
+445
+926
+483
+Resignation parameters
+16
+0.0
+1
+
+CHOOSER
+717
+558
+948
+603
+matching-function
+matching-function
+"similarity" "evaluation"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
