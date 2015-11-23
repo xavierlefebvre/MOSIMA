@@ -95,11 +95,15 @@ end
 to dispatch-turtles
   let interval-people (world-height - 2) / number-people
   let interval-companies (world-height - 2) / number-companies
-  ask people[
-    setxy (min-pxcor + 1) (1 + min-pycor + who * interval-people)
+  let index 0
+  foreach sort-on [location] people [
+    ask ? [ setxy (min-pxcor + 1) (1 + min-pycor + index * interval-people) ]
+    set index index + 1
   ]
-  ask companies [
-    setxy (max-pxcor - 1) (1 + min-pycor + (who - number-people) * interval-companies)
+  set index 0
+  foreach sort-on [location] companies [
+    ask ? [ setxy (max-pxcor - 1) (1 + min-pycor + index * interval-companies) ]
+    set index index + 1
   ]
 end
 
@@ -114,6 +118,7 @@ to setup-companies
     set state false
     set productivity random-float 1
     set shape "house"
+    set color (location + 1) * 10 + 5
   ]
 end
 
@@ -129,6 +134,7 @@ to setup-people
     set productivity random-float 1
     set resignation-value 1
     set shape "person"
+    set color (location + 1) * 10 + 5
   ]
 end
 
@@ -143,8 +149,8 @@ to update-global-variables
 end
 
 to update-display
-  ask turtles [
-    set color ifelse-value state [ green ] [ grey ]
+  ask links [
+    set color ifelse-value ((reduce - [location] of both-ends) = 0) [ green ] [ grey ]
   ]
 end
 
@@ -208,7 +214,6 @@ to regular-lay-off
     ask link-neighbors [
       if ([productivity] of self / [productivity] of myself) < lay-off-quality-threshold [
         unlink-person-company self myself
-        print "i quit"
       ]
       let fluctuation random-float max-productivity-fluctuation
       set productivity ifelse-value (random 2 = 1 )[min list 1 (productivity + fluctuation) ] [max list 0 (productivity - fluctuation)]
@@ -243,7 +248,7 @@ end
 ;; Matcher Procedures
 ;;
 to match
-  let number-pairs ceiling min list ( matching-random-pair-number * count people with [ state = false ] )( matching-random-pair-number * count companies with [ state = false ] )
+  let number-pairs ceiling min list ( matching-random-pair-rate * count people with [ state = false ] )( matching-random-pair-rate * count companies with [ state = false ] )
   repeat number-pairs [
     let person one-of people with [ state = false ]
     let company one-of companies with [ state = false ]
@@ -436,7 +441,7 @@ number-locations
 number-locations
 1
 100
-10
+32
 1
 1
 NIL
@@ -563,8 +568,8 @@ SLIDER
 578
 244
 611
-matching-random-pair-number
-matching-random-pair-number
+matching-random-pair-rate
+matching-random-pair-rate
 0
 1
 0.6
