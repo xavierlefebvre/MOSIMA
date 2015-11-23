@@ -37,10 +37,12 @@ to generateBeveridgeCurve
       set number-companies ?
       let vr-plot []
       let ur-plot []
+      ;; for the current parameters we start simulation-number of simulations in order to get several plots (ur,vr)
       repeat simulation-number [
         setup
         let vr-sample []
         let ur-sample []
+        ;; the simulation runs until we reach the stop condition or the max-ticks authorized
         while[ (ticks < max-ticks) and ( (length vr-sample < sample-size) or (abs 1 - (mean butlast vr-sample / mean butfirst vr-sample)  > sample-variation and abs 1 - (mean butlast ur-sample / mean butfirst ur-sample)  > sample-variation) )][
           go
           set vr-sample fput vr vr-sample
@@ -163,16 +165,16 @@ end
 ;; Person Procedures
 ;;
 to random-resign
-  ask companies with [ state = true ] [
-    ask link-neighbors [
-      if (random 1 < 0.1) [ ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
-        unlink-person-company self myself
-      ]
+  ask links [
+    ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
+    if (random 1 < 0.1)[
+      ask both-ends [ set state false]
+      die
     ]
   ]
 end
 
-to resign 
+to resign
   ask companies with [ state = true ] [
     ask link-neighbors [
       if (resignation-value < resignation-threshold) [
@@ -261,6 +263,18 @@ to match
         set employement-tick ticks
       ]
     ]
+  ]
+end
+
+to match-global
+  let M (V * ( 1 - exp ( matching-random-pair-rate - * U / V) ))
+  let pers n-of M people with [state = false]
+  let comp n-of M company with [state = false]
+  
+  let index 0
+  repeat length pers [
+    link-person-company (item index pers) (item index com)
+    set index index + 1
   ]
 end
 
@@ -382,7 +396,7 @@ number-people
 number-people
 0
 400
-70
+400
 1
 1
 NIL
@@ -397,7 +411,7 @@ number-companies
 number-companies
 0
 400
-61
+400
 1
 1
 NIL
@@ -429,7 +443,7 @@ number-locations
 number-locations
 1
 100
-6
+53
 1
 1
 NIL
@@ -470,7 +484,7 @@ lay-off-quality-threshold
 lay-off-quality-threshold
 0
 1
-0.5
+0.4
 0.1
 1
 NIL
@@ -485,7 +499,7 @@ unexpected-lay-off-rate
 unexpected-lay-off-rate
 0
 1
-0.1
+1
 0.01
 1
 NIL
