@@ -33,19 +33,25 @@ to generateBeveridgeCurve
     set number-people ?
     foreach [100 200 300 400] [
       set number-companies ?
-      setup
-      let vr-sample []
-      let ur-sample []
-      while[ (ticks < max-number-simulation) and ( (length vr-sample < 2) or (abs 1 - (mean butlast vr-sample / mean butfirst vr-sample)  > sample-variation and abs 1 - (mean butlast ur-sample / mean butfirst ur-sample)  > sample-variation) )][
-        go
-        set vr-sample fput vr vr-sample
-        set ur-sample fput ur ur-sample
-        if (length vr-sample > sample-size + 1)[
-          set vr-sample butlast vr-sample
-          set ur-sample butlast ur-sample
+      let vr-plot []
+      let ur-plot []
+      repeat simulation-number [
+        setup
+        let vr-sample []
+        let ur-sample []
+        while[ (ticks < max-ticks) and ( (length vr-sample < sample-size) or (abs 1 - (mean butlast vr-sample / mean butfirst vr-sample)  > sample-variation and abs 1 - (mean butlast ur-sample / mean butfirst ur-sample)  > sample-variation) )][
+          go
+          set vr-sample fput vr vr-sample
+          set ur-sample fput ur ur-sample
+          if (length vr-sample > sample-size + 1)[
+            set vr-sample butlast vr-sample
+            set ur-sample butlast ur-sample
+          ]
         ]
+        set vr-plot fput mean vr-sample vr-plot
+        set ur-plot fput mean ur-sample ur-plot
       ]
-      plotxy mean vr-sample mean ur-sample
+      plotxy mean vr-plot mean ur-plot
     ]
   ]
 end
@@ -65,11 +71,6 @@ end
 ;;
 ;; Setup Procedures
 ;;
-to clear
-  clear-all
-  reset-ticks
-end
-
 to setup
   clear-globals
   clear-ticks
@@ -394,7 +395,7 @@ number-people
 number-people
 0
 400
-100
+400
 1
 1
 NIL
@@ -409,7 +410,7 @@ number-companies
 number-companies
 0
 400
-100
+400
 1
 1
 NIL
@@ -441,7 +442,7 @@ number-locations
 number-locations
 1
 100
-32
+6
 1
 1
 NIL
@@ -467,17 +468,17 @@ matching-quality-threshold
 matching-quality-threshold
 0
 1
-0.4
+0.5
 0.1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-13
-302
-243
-335
+14
+336
+244
+369
 lay-off-quality-threshold
 lay-off-quality-threshold
 0
@@ -490,15 +491,15 @@ HORIZONTAL
 
 SLIDER
 13
-337
+300
 244
-370
+333
 unexpected-lay-off-rate
 unexpected-lay-off-rate
 0
 1
 0.1
-0.1
+0.01
 1
 NIL
 HORIZONTAL
@@ -512,7 +513,7 @@ max-productivity-fluctuation
 max-productivity-fluctuation
 0
 1
-0.4
+0.3
 0.1
 1
 NIL
@@ -527,7 +528,7 @@ unexpected-company-motivation
 unexpected-company-motivation
 0
 1
-0
+0.1
 0.1
 1
 NIL
@@ -557,7 +558,7 @@ exceptional-matching
 exceptional-matching
 0
 1
-0.2
+0.1
 0.1
 1
 NIL
@@ -572,8 +573,8 @@ matching-random-pair-rate
 matching-random-pair-rate
 0
 1
-0.6
-0.1
+0.7
+0.01
 1
 NIL
 HORIZONTAL
@@ -653,7 +654,7 @@ TEXTBOX
 15
 281
 181
-319
+299
 Lay-off parameters
 16
 0.0
@@ -663,7 +664,7 @@ TEXTBOX
 14
 419
 191
-439
+437
 Motivation parameters
 16
 0.0
@@ -673,7 +674,7 @@ TEXTBOX
 14
 558
 205
-578
+576
 Environment parameters
 16
 0.0
@@ -694,8 +695,8 @@ BUTTON
 65
 987
 98
-Clear all
-clear
+Clear all plots
+clear-all-plots
 NIL
 1
 T
@@ -709,19 +710,19 @@ NIL
 INPUTBOX
 14
 682
-144
+68
 742
-max-number-simulation
+max-ticks
 500
 1
 0
 Number
 
 INPUTBOX
-147
-681
+179
+682
 246
-741
+742
 sample-size
 100
 1
@@ -737,7 +738,7 @@ sample-variation
 sample-variation
 0
 1
-0.02
+0.01
 0.01
 1
 NIL
@@ -762,7 +763,7 @@ resignation-threshold
 resignation-threshold
 0
 1
-0.15
+0
 0.05
 1
 NIL
@@ -777,7 +778,7 @@ max-resignation-fluctuation
 max-resignation-fluctuation
 0
 1
-0.2
+0
 0.1
 1
 NIL
@@ -792,7 +793,7 @@ learning-time
 learning-time
 0
 100
-1
+0
 1
 1
 NIL
@@ -807,7 +808,7 @@ forgetting-time
 forgetting-time
 0
 100
-50
+0
 1
 1
 NIL
@@ -817,7 +818,7 @@ TEXTBOX
 717
 342
 893
-380
+362
 Learning parameters
 16
 0.0
@@ -827,7 +828,7 @@ TEXTBOX
 717
 445
 926
-483
+463
 Resignation parameters
 16
 0.0
@@ -842,6 +843,17 @@ matching-function
 matching-function
 "similarity" "evaluation"
 0
+
+INPUTBOX
+71
+682
+175
+742
+simulation-number
+10
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
