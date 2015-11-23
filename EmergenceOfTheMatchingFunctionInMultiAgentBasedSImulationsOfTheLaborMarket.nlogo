@@ -63,6 +63,8 @@ end
 ;;
 ;; Main Loop
 ;;
+;; In this loop we first check if there is people who can forget/learn skills and then check all the production/resignation values to see if
+;; there are some lay-offs or resignation. Then we try to match a parameter defined number of agents.
 to go
   learning
   regular-lay-off
@@ -120,6 +122,8 @@ to setup-companies
   create-companies number-companies [
     set skills n-values number-skills [random 2]
     set location random number-locations
+    ;; The salary is calculated based on the number of skills required for this job. The more skills are required the higher the salary will be
+    ;; and it can still fluctuate from (max-salary - min-salary ) / number-skills.
     set salary min-salary + (sum skills * (max-salary - min-salary) / number-skills ) + ifelse-value (random 2 = 1) [ random (max-salary - min-salary) / number-skills] [ -1 * random (max-salary - min-salary) / number-skills]
     if salary > max-salary [set salary max-salary]
     if salary < min-salary [set salary min-salary]
@@ -135,6 +139,7 @@ to setup-people
   create-people number-people [
     set skills n-values number-skills [random 2]
     set location random number-locations
+    ;; Same here as in setup companies, the more skills a person has, the higher will be their asked salary
     set salary min-salary + (sum skills * (max-salary - min-salary) / number-skills ) + ifelse-value (random 2 = 1) [ random (max-salary - min-salary) / number-skills] [ -1 * random (max-salary - min-salary) / number-skills]
     if salary > max-salary [set salary max-salary]
     if salary < min-salary [set salary min-salary]
@@ -166,7 +171,8 @@ end
 ;;
 to random-resign
   ask links [
-    ;; We could had a variable instead of just using an  arbitrary value in this case but since this function is gonna be improve soon it didn't seemed useful.
+    ;; We could had a variable instead of just using an  arbitrary value in this case but since this function
+    ;; is gonna be improve soon it didn't seemed useful.
     if (random 1 < 0.1)[
       ask both-ends [ set state false]
       die
@@ -174,6 +180,7 @@ to random-resign
   ]
 end
 
+;; In this procedure we check if the resignation value of the working agents aren't under the threshold and then we "fluctuate" them
 to resign
   ask companies with [ state = true ] [
     ask link-neighbors [
@@ -186,6 +193,7 @@ to resign
   ]
 end
 
+;; This procedure checks at each ticks if there is new skill to be learned or forget by working agents
 to learning
   ask people with [ state = true] [
     if (employement-tick + learning-time = ticks ) [
@@ -200,6 +208,8 @@ end
 ;;
 ;; Companies Procedures
 ;;
+;; This procedure checks the productivity of all working persons, if this productivity is under the threshold then the agent is fired
+;; The productivity "fluctuate" right after that.
 to regular-lay-off
   ask companies with [ state = true ] [
     ask link-neighbors [
@@ -212,6 +222,7 @@ to regular-lay-off
   ]
 end
 
+;;This procedure randomely decide to fire some agents
 to unexpected-lay-off
   ask companies with [ state = true ] [
     ask link-neighbors [
@@ -222,6 +233,7 @@ to unexpected-lay-off
   ]
 end
 
+;; This procedure unlinks two turtles in the simulation and change their state.
 to unlink-person-company [turtle1 turtle2]
   ask turtle1 [
     set state false
@@ -237,13 +249,17 @@ end
 ;;
 ;; Matcher Procedures
 ;;
+
+
+;; This is the main matching procedure. For this one we choose two random list of people/companies and then try to match the agents within.
+;; if the resulst for the evaluation system selected are under a threshold we then link the two of them and set all the "first day" parameters
 to match
   let number-pairs ceiling min list ( matching-random-pair-rate * count people with [ state = false ] )( matching-random-pair-rate * count companies with [ state = false ] )
   repeat number-pairs [
     let person one-of people with [ state = false ]
     let company one-of companies with [ state = false ]
     let matching-quality 0
-    
+
     if(matching-function = "similarity") [
       set matching-quality mean list
       (ifelse-value (random-float 1 < unexpected-worker-motivation)  [evaluate-similarity person company + max-motivation-fluctuation] [evaluate-similarity person company])
@@ -254,7 +270,7 @@ to match
       (ifelse-value (random-float 1 < unexpected-worker-motivation)  [evaluate person company + max-motivation-fluctuation] [evaluate person company])
       (ifelse-value (random-float 1 < unexpected-company-motivation) [evaluate company person + max-motivation-fluctuation] [evaluate company person])
     ]
-    
+
     if matching-quality >= matching-quality-threshold [
       link-person-company person company
       set-productivity-person person company
@@ -266,18 +282,20 @@ to match
   ]
 end
 
+;;this procedure represents the annex of the article. Without comparing their skills or salary a definite number of agents have to be
+;; matched for each tick.
 to match-global
-  let M (V * ( 1 - exp ( matching-random-pair-rate - * U / V) ))
+  let M (V * ( 1 - exp ( - matching-random-pair-rate * U / V) ))
   let pers n-of M people with [state = false]
-  let comp n-of M company with [state = false]
-  
+  let comp n-of M companies with [state = false]
   let index 0
   repeat length pers [
-    link-person-company (item index pers) (item index com)
+    link-person-company (item index pers) (item index comp)
     set index index + 1
   ]
 end
 
+;; This procedure determines the productivity of a person based on the number of skills he has that are asked by the company.
 to set-productivity-person [turtle1 turtle2]
   if (is-person? turtle1) and (is-company? turtle2) [
     let skills-required sum [skills] of turtle2
@@ -1234,7 +1252,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.2.0
+NetLogo 5.2.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
